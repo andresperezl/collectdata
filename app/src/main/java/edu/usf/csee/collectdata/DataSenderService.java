@@ -28,6 +28,7 @@ public class DataSenderService extends IntentService {
     private static final String ACTION_START_SERVICE = "edu.usf.csee.collectdata.action.START_DATA_SENDER";
     private static final String ACTION_STOP_SERVICE = "edu.usf.csee.collectdata.action.STOP_DATA_SENDER";
     private static ScheduledThreadPoolExecutor stpe;
+    private static boolean requestToStop = false;
     /**
      * Starts this service to start sending data to the server.
      *
@@ -71,10 +72,11 @@ public class DataSenderService extends IntentService {
         if (intent != null) {
             final String action = intent.getAction();
             if (ACTION_START_SERVICE.equals(action)) {
+                requestToStop = false;
                 stpe = new ScheduledThreadPoolExecutor(2);
-                stpe.scheduleWithFixedDelay(sendDataThread, 3, 3, TimeUnit.SECONDS);
+                stpe.scheduleWithFixedDelay(sendDataThread, 1, 1, TimeUnit.SECONDS);
             } else if (ACTION_STOP_SERVICE.equals(action)) {
-                stpe.shutdown();
+                requestToStop = true;
             }
         }
     }
@@ -111,6 +113,9 @@ public class DataSenderService extends IntentService {
                     }
                 });
                 MainActivity.requestQueue.add(jsonObjectRequest);
+            }
+            if(!send && requestToStop){
+                stpe.shutdown();
             }
         }
     });
