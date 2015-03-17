@@ -3,14 +3,13 @@ package edu.usf.csee.collectdata;
 import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
 import android.util.Log;
 
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -18,9 +17,6 @@ import org.json.JSONObject;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by andres on 2/26/15.
- */
 public class DataSenderService extends IntentService {
 
     private final static String TAG = "DataSenderService";
@@ -28,15 +24,18 @@ public class DataSenderService extends IntentService {
     private static final String ACTION_START_SERVICE = "edu.usf.csee.collectdata.action.START_DATA_SENDER";
     private static final String ACTION_STOP_SERVICE = "edu.usf.csee.collectdata.action.STOP_DATA_SENDER";
     private static ScheduledThreadPoolExecutor stpe;
-    private static boolean requestToStop = false;
+    public static boolean requestToStop = true;
+    private static Handler handler;
     /**
      * Starts this service to start sending data to the server.
      *
      * @see IntentService
      */
-    public static void startDataSenderService(Context context) {
+    public static void startDataSenderService(Context context, Handler handler) {
         Intent intent = new Intent(context, DataSenderService.class);
         intent.setAction(ACTION_START_SERVICE);
+        requestToStop = false;
+        DataSenderService.handler = handler;
         context.startService(intent);
     }
 
@@ -89,6 +88,7 @@ public class DataSenderService extends IntentService {
             boolean send = false;
             try {
                 if(DataCollectorService.phoneAccArray.size() > 0) {
+                    handler.sendEmptyMessage(DataCollectorService.phoneAccArray.countSteps());
                     jsonObject.accumulate("phone_acc", DataCollectorService.phoneAccArray.toJSONArrayAndClear());
                     send = true;
                 }

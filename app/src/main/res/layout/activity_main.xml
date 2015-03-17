@@ -19,7 +19,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/server_ip"
         android:gravity="center"
-        android:text="10.226.2.90:3000" />
+        android:text="10.226.1.124:3000" />
 
     <TextView android:text="Experiemnt ID:" android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -39,5 +39,15 @@
         android:id="@+id/services_btn"
         android:textOff="Not Recording Data"
         android:textOn="Recording Data" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="10.226.1.124:3000"
+        android:id="@+id/ex_status_text"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:textAlignment="center" />
 
 </LinearLayout>

@@ -1,18 +1,17 @@
 package edu.usf.csee.collectdata;
 
 import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
 public class TrioArray extends ArrayList<Trio> {
 
+    public static final StepEventDetector stepEventDetector = StepEventDetector.getInstance();
+
     protected JSONArray toJSONArray(){
         JSONArray jsonArray = new JSONArray();
-        for(Iterator<Trio> it = iterator(); it.hasNext();)
-            jsonArray.put(it.next().toJSONObject());
+        for(Trio t : this)
+            jsonArray.put(t.toJSONObject());
         return jsonArray;
     }
 
@@ -26,5 +25,8 @@ public class TrioArray extends ArrayList<Trio> {
         return jsonArray;
     }
 
+    public synchronized int countSteps(){
+        return stepEventDetector.getEvents(this);
+    }
 
 }

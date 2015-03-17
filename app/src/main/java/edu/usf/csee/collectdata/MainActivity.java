@@ -1,7 +1,12 @@
 package edu.usf.csee.collectdata;
 
 import android.app.Activity;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,20 +25,28 @@ import com.android.volley.toolbox.Volley;
 
 import org.json.JSONObject;
 
+
 public class MainActivity extends Activity {
 
     private final static String TAG = "CollectData";
 
+    private final int MAX_STEPS = 10;
+    private static int steps;
+
     public static int experimentId;
     public static RequestQueue requestQueue;
     public static String serverIp;
+
+    private static ToneGenerator tone = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
+    private TextView exStatus;
+    private static StepsHandler stepsHandler;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         requestQueue = Volley.newRequestQueue(this);
-
+        stepsHandler = new StepsHandler();
         Button experimentBtn = (Button) findViewById(R.id.experiment_btn);
         experimentBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -42,15 +55,17 @@ public class MainActivity extends Activity {
                 requestNewExperiment();
             }
         });
-
+        exStatus = (TextView) findViewById(R.id.ex_status_text);
         final ToggleButton servicesBtn = (ToggleButton) findViewById(R.id.services_btn);
         servicesBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (servicesBtn.isChecked()){
-                    startServices();
+                    countDownTimer.start();
                 } else {
+                    countDownTimer.cancel();
                     stopServices();
+                    exStatus.setText("Experiment NOT running");
                 }
             }
         });
@@ -88,10 +103,11 @@ public class MainActivity extends Activity {
     private void refreshExperimentId(){
         TextView tv = (TextView) findViewById(R.id.experiment_id);
         tv.setText("Experiment ID: "+experimentId);
+        exStatus.setText("Experiment NOT running");
     }
 
     private void requestNewExperiment(){
-        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, getServerIp()+"/experiment", null,
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, getServerIp()+"/experiment", (String) null,
                 new Response.Listener<JSONObject>(){
                     @Override
                     public void onResponse(JSONObject jsonObject){
@@ -103,7 +119,8 @@ public class MainActivity extends Activity {
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError volleyError) {
-                Log.d(TAG, "REquest Processing an error");
+                Log.d(TAG, "Request Processing an error");
+
             }
         });
 
@@ -111,9 +128,11 @@ public class MainActivity extends Activity {
     }
 
     public void startServices(){
+        steps = 0;
+        tone.startTone(ToneGenerator.TONE_PROP_ACK);
         DataCollectorService.startPhoneAcceleometer(this);
         DataCollectorService.startPhoneGyroscope(this);
-        DataSenderService.startDataSenderService(MainActivity.this);
+        DataSenderService.startDataSenderService(MainActivity.this, stepsHandler);
     }
 
     public void stopServices(){
@@ -122,5 +141,39 @@ public class MainActivity extends Activity {
         DataSenderService.stoptDataSenderService(this);
     }
 
+    CountDownTimer countDownTimer = new CountDownTimer(6000, 1000) {
+        @Override
+        public void onTick(final long millisUntilFinished) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    exStatus.setText("Put device on the holster\n"+(millisUntilFinished/1000) + " seconds before start...");
+                }
+            });
 
+        }
+
+        @Override
+        public void onFinish() {
+            startServices();
+        }
+    };
+
+    private class StepsHandler extends Handler{
+
+        @Override
+        public void handleMessage(Message msg){
+            steps += msg.what;
+            if(steps >= MAX_STEPS) {
+                exStatus.setText("Experiment completed!\n"+steps+" total steps");
+                //stopServices();
+                final ToggleButton servicesBtn = (ToggleButton) findViewById(R.id.services_btn);
+                servicesBtn.setChecked(false);
+                stopServices();
+                tone.startTone(ToneGenerator.TONE_PROP_BEEP2);
+            }
+            else exStatus.setText(steps+"/"+MAX_STEPS+" steps completed.");
+        }
+
+    }
 }
